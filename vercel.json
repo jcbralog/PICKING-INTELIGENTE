@@ -1,8 +1,8 @@
 {
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/charts", "destination": "/index.html" },
+    { "source": "/history", "destination": "/index.html" },
+    { "source": "/export", "destination": "/index.html" },
+    { "source": "/security", "destination": "/index.html" }
   ]
 }
