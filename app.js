@@ -23,27 +23,63 @@ function updateVisibility() {
   }
 }
 
+const routeMap = {
+  '/': '0',
+  '/charts': '1',
+  '/history': '2',
+  '/export': '3',
+  '/security': '4'
+};
+
+const idMap = Object.fromEntries(Object.entries(routeMap).map(([k, v]) => [v, k]));
+
+function handleRouting() {
+  const path = window.location.pathname;
+  const tabId = routeMap[path] || '0';
+  
+  const btn = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+  if (btn) {
+    switchToTab(tabId, false);
+  }
+}
+
+function switchToTab(idx, pushState = true) {
+  // Proteção rigorosa: se for aba de segurança e não for admin, bloqueia
+  if (idx === '4') {
+    if (typeof currentUser === 'undefined' || !currentUser || currentUser.role !== 'admin') {
+      alert("Acesso negado! Apenas administradores podem acessar a aba de Segurança.");
+      return;
+    }
+  }
+
+  const btn = document.querySelector(`.nav-item[data-tab="${idx}"]`);
+  if (!btn) return;
+
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + idx).classList.add('active');
+  
+  updateVisibility();
+
+  if (idx === '1' && analysisData && analysisData.length > 0) setTimeout(renderCharts, 100);
+
+  if (pushState) {
+    const newPath = idMap[idx] || '/';
+    if (window.location.pathname !== newPath) {
+      history.pushState({ tabId: idx }, '', newPath);
+    }
+  }
+}
+
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
-    const idx = btn.dataset.tab;
-    
-    // Proteção rigorosa: se for aba de segurança e não for admin, bloqueia
-    if (idx === '4') {
-      if (typeof currentUser === 'undefined' || !currentUser || currentUser.role !== 'admin') {
-        alert("Acesso negado! Apenas administradores podem acessar a aba de Segurança.");
-        return;
-      }
-    }
-
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + idx).classList.add('active');
-    
-    updateVisibility();
-
-    if (idx === '1' && analysisData && analysisData.length > 0) setTimeout(renderCharts, 100);
+    switchToTab(btn.dataset.tab);
   });
+});
+
+window.addEventListener('popstate', (e) => {
+  handleRouting();
 });
 
 // ===== FILE HANDLING =====
@@ -1078,6 +1114,7 @@ async function removeSnapshot(id) {
 document.addEventListener('DOMContentLoaded', () => {
   // Atraso curto para dar tempo do supabase.js injetar o cliente
   setTimeout(() => {
+    handleRouting();
     changeClient();
   }, 500);
 });
