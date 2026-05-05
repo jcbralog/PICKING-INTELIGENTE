@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Picking Intelligence — BRALOG Logística</title>
+  <meta name="description" content="Sistema de análise de estoque e prioridades de picking - BRALOG Logística">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <div id="loginScreen" class="login-screen" style="display: none;">
+    <div class="login-card">
+      <div class="login-logo">
+        <!-- Logo BRALOG centralizada com fundo contrastante -->
+        <img src="public/Bralog_Logo.png" alt="BRALOG Logística" onerror="this.onerror=null; this.src='https://placehold.co/400x150/ffffff/059669.png?text=BRALOG+LOGISTICA';">
+      </div>
+      <h2 class="login-title">Acesso Restrito</h2>
+      <p class="login-subtitle">Insira suas credenciais para acessar o painel de <strong>Picking Intelligence</strong>.</p>
+      
+      <form onsubmit="handleLogin(event)">
+        <div class="filter-group" style="margin-bottom: 20px;">
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 6px; display: block;">E-mail Corporativo</label>
+          <input type="email" id="loginEmail" class="login-input" placeholder="seu.nome@bralog.com.br" required>
+        </div>
+        <div class="filter-group" style="margin-bottom: 28px;">
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 6px; display: block;">Senha</label>
+          <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required>
+        </div>
+        <div id="loginError" style="color: var(--danger); background: #fef2f2; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 500; text-align: center; margin-bottom: 20px; display: none;"></div>
+        <button type="submit" id="btnLogin" class="btn-primary login-btn">Entrar no Painel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- APLICAÇÃO PRINCIPAL -->
+  <div id="appContainer" style="display: none; height: 100vh; width: 100%;">
+
+    <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="public/Bralog_Logo.png" alt="BRALOG" class="logo-img">
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="0" id="nav-painel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Painel</span>
+      </button>
+      <button class="nav-item" data-tab="1" id="nav-graficos">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        <span>Gráficos</span>
+      </button>
+      <button class="nav-item" data-tab="2" id="nav-historico">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Histórico</span>
+      </button>
+      <button class="nav-item" data-tab="3" id="nav-exportar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Exportar</span>
+      </button>
+      <button class="nav-item" data-tab="4" id="nav-seguranca" style="display:none; color: var(--brand-500);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <span>Segurança</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size: 12px; color: rgba(255,255,255,0.7); display:flex; align-items:center; gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span id="loggedUserName" style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:120px;">Usuário</span>
+      </div>
+      <button class="btn-upload" onclick="handleLogout()" style="justify-content:center; color: #fca5a5; border-color: rgba(248, 113, 113, 0.2);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sair
+      </button>
+      <button class="btn-upload" id="btnUploadToggle" onclick="document.getElementById('uploadModal').classList.add('show')" style="justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar Dados
+        </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- HEADER -->
+    <header class="top-header">
+      <button class="menu-toggle" id="menuToggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="header-left">
+        <h1 class="page-title">Picking Intelligence</h1>
+        <div style="display:flex; align-items:center; gap: 12px; margin-top: 4px;">
+          <span class="header-period" id="headerPeriod">Análise de 3 Meses</span>
+          <select id="clientSelector" class="client-select" onchange="changeClient()">
+            <option value="Apice atacado">Apice atacado</option>
+            <option value="Beauty Hub atacado">Beauty Hub atacado</option>
+            <option value="Coop login">Coop login</option>
+            <option value="Classy">Classy</option>
+            <option value="Projeção solar">Projeção solar</option>
+            <option value="4 investment (ecommerce)">4 investment (ecommerce)</option>
+            <option value="4 investment (atacado)">4 investment (atacado)</option>
+            <option value="qumory distribuidora (ecommerce)">Qumory distribuidora (ecommerce)</option>
+            <option value="qumory (atacado)">Qumory (atacado)</option>
+            <option value="jrg">JRG</option>
+            <option value="vix care">Vix Care</option>
+            <option value="maxifarma">Maxifarma</option>
+            <option value="beleza e casa">Beleza e Casa</option>
+            <option value="Fragrance">Fragrance</option>
+            <option value="Lev cosmeticos">Lev Cosméticos</option>
+          </select>
+        </div>
+      </div>
+      <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+        <button id="btnManualSave" class="btn-primary" style="padding: 6px 12px; font-size: 12px; display: none;" onclick="manualSave()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; margin-bottom:-2px;"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar Análise
+        </button>
+        <div class="status-indicator" id="dataStatus">
+          <span class="status-dot offline"></span>
+          <span class="status-text">Sem dados carregados</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+      </div>
+      <h2>Importe suas planilhas para começar</h2>
+      <p>Carregue a planilha de <strong>pedidos dos últimos 3 meses</strong> e a planilha de <strong>estoque atual</strong> para gerar a análise completa.</p>
+      <button class="btn-primary btn-lg" onclick="document.getElementById('uploadModal').classList.add('show')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar Planilhas
+      </button>
+    </div>
+
+    <!-- TAB CONTENT PANELS -->
+    <div class="tab-panels" id="tabPanels" style="display:none;">
+
+      <!-- ABA 1: PAINEL DE PRIORIDADES -->
+      <section class="tab-panel active" id="panel-0">
+        <div class="section-label">Resumo do Período</div>
+        <div class="metrics-grid" id="metricsGrid">
+          <div class="metric-card">
+            <div class="metric-icon total"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+            <div class="metric-info"><span class="metric-label">Produtos Monitorados</span><span class="metric-value" id="metricTotal">0</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon urgente"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="metric-info"><span class="metric-label">Status Urgente</span><span class="metric-value text-danger" id="metricUrgente">0</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon medio"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+            <div class="metric-info"><span class="metric-label">Status Médio</span><span class="metric-value text-warning" id="metricMedio">0</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon baixo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <div class="metric-info"><span class="metric-label">Status Baixo</span><span class="metric-value text-success" id="metricBaixo">0</span></div>
+          </div>
+        </div>
+
+        <div class="section-label">Alertas de Inteligência</div>
+        <div class="alerts-grid" id="alertsGrid"></div>
+
+        <div class="section-label">Top Produtos — Prioridade de Abastecimento</div>
+        <div class="legend-bar">
+          <div class="legend-item"><span class="legend-dot urgente"></span><strong>Urgente</strong> — Cobertura &le; 15 dias&nbsp;&nbsp;|&nbsp;&nbsp;Reposição imediata</div>
+          <div class="legend-item"><span class="legend-dot medio"></span><strong>Médio</strong> — Cobertura 16 a 45 dias&nbsp;&nbsp;|&nbsp;&nbsp;Repor em breve</div>
+          <div class="legend-item"><span class="legend-dot baixo"></span><strong>Baixo</strong> — Cobertura &gt; 45 dias&nbsp;&nbsp;|&nbsp;&nbsp;Estoque suficiente</div>
+        </div>
+        <div class="table-container">
+          <div class="table-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Buscar produto ou SKU..." id="searchInput" oninput="filterTable()">
+            <select id="tableStatusFilter" onchange="setFilterStatus(this.value)" style="margin-left: auto; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12px; outline: none; cursor: pointer;">
+              <option value="todos">Todos os Status</option>
+              <option value="Urgente">Urgente</option>
+              <option value="Médio">Médio</option>
+              <option value="Baixo">Baixo</option>
+            </select>
+          </div>
+          <table class="data-table" id="mainTable">
+            <thead>
+              <tr>
+                <th class="sortable" data-col="desc">
+                  <div class="th-inner" onclick="sortTable('desc')">Produto / SKU</div>
+                  <button class="th-filter-btn" onclick="openColFilter('desc', this)" title="Filtrar">▼</button>
+                </th>
+                <th class="sortable desc" data-col="saidas90d">
+                  <div class="th-inner" onclick="sortTable('saidas90d')">Saídas 90d</div>
+                  <button class="th-filter-btn" onclick="openColFilter('saidas90d', this)" title="Filtrar">▼</button>
+                </th>
+                <th class="sortable" data-col="mediaDia">
+                  <div class="th-inner" onclick="sortTable('mediaDia')">Média/dia</div>
+                  <button class="th-filter-btn" onclick="openColFilter('mediaDia', this)" title="Filtrar">▼</button>
+                </th>
+                <th class="sortable" data-col="estoqueAtual">
+                  <div class="th-inner" onclick="sortTable('estoqueAtual')">Estoque Atual</div>
+                  <button class="th-filter-btn" onclick="openColFilter('estoqueAtual', this)" title="Filtrar">▼</button>
+                </th>
+                <th class="sortable" data-col="diasCobertura">
+                  <div class="th-inner" onclick="sortTable('diasCobertura')">Dias Cobertura</div>
+                  <button class="th-filter-btn" onclick="openColFilter('diasCobertura', this)" title="Filtrar">▼</button>
+                </th>
+                <th>Giro</th>
+                <th class="sortable" data-col="status">
+                  <div class="th-inner" onclick="sortTable('status')">Status</div>
+                  <button class="th-filter-btn" onclick="openColFilter('status', this)" title="Filtrar">▼</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+
+          </table>
+        </div>
+      </section>
+
+      <!-- ABA 2: GRÁFICOS -->
+      <section class="tab-panel" id="panel-1">
+        <div class="charts-row">
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <h3>Saídas por Produto — Top 10</h3>
+              <span class="chart-subtitle">Volume de saídas nos últimos 90 dias</span>
+            </div>
+            <div class="chart-body"><canvas id="barChart"></canvas></div>
+          </div>
+          <div class="chart-card narrow">
+            <div class="chart-header">
+              <h3>Distribuição por Status</h3>
+              <span class="chart-subtitle">Classificação dos produtos monitorados</span>
+            </div>
+            <div class="chart-body doughnut-wrap"><canvas id="doughnutChart"></canvas></div>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card full">
+            <div class="chart-header">
+              <h3>Tendência Mensal de Saídas</h3>
+              <span class="chart-subtitle">Comparativo dos 3 meses analisados</span>
+            </div>
+            <div class="chart-body"><canvas id="lineChart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 3: HISTÓRICO -->
+      <section class="tab-panel" id="panel-2">
+        <div class="section-label">Histórico de Análises</div>
+        <p class="section-desc">Análises processadas anteriormente para o cliente <strong id="histClientName"></strong>. Os dados são salvos automaticamente após a importação.</p>
+        
+        <div class="table-container" style="max-width: 800px; margin-top: 20px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data da Análise</th>
+                <th>Total de Produtos</th>
+                <th>Produtos Urgentes</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-tertiary);">Nenhum histórico encontrado para este cliente.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ABA 4: EXPORTAR -->
+      <section class="tab-panel" id="panel-3">
+        <div class="section-label">Exportar Relatório BRALOG</div>
+        <p class="section-desc">Gera uma planilha profissional com todos os dados e análise para apresentação à diretoria.</p>
+        <div class="export-card" style="max-width:680px;">
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div class="filter-group">
+              <label>Filtrar por Status</label>
+              <select id="filterStatus">
+                <option value="todos">Todos os Status</option>
+                <option value="Urgente">Urgente</option>
+                <option value="Médio">Médio</option>
+                <option value="Baixo">Baixo</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Formato</label>
+              <select id="filterFormato">
+                <option value="xlsx">Excel Premium (.xlsx)</option>
+                <option value="csv">CSV (.csv)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Preview do que será exportado -->
+          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:18px 20px;margin-bottom:20px;">
+            <div style="font-weight:700;color:#065f46;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              O arquivo Excel gerado conterá:
+            </div>
+            <ul style="margin:0;padding-left:20px;color:#047857;font-size:13px;line-height:2;">
+              <li><strong>Aba 1 — Análise de Estoque:</strong> Todos os produtos com SKU, saídas, média/dia, estoque, cobertura, ponto de pedido e status</li>
+              <li><strong>Aba 2 — Resumo Executivo:</strong> Indicadores gerais, Top 10 por volume e lista de urgentes</li>
+              <li><strong>Cabeçalho corporativo BRALOG</strong> com data, hora e regras de classificação</li>
+            </ul>
+          </div>
+
+          <div class="export-actions">
+            <button class="btn-primary btn-lg" id="btnExport" onclick="exportData()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar Relatório BRALOG
+            </button>
+            <span class="export-hint">Planilha gerada no padrão corporativo BRALOG Logística</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 5: SEGURANÇA -->
+      <section class="tab-panel" id="panel-4">
+        <div class="section-label">Segurança e Acessos</div>
+        <p class="section-desc">Gerencie quem tem permissão para acessar o Picking Intelligence. Apenas o administrador possui esse acesso.</p>
+        
+        <div style="display:flex; gap: 24px; margin-top: 20px; align-items: flex-start; max-width: 1000px;">
+          
+          <!-- Lista de Usuários -->
+          <div class="export-card" style="flex: 2;">
+            <div style="font-weight:700; color:var(--text-primary); margin-bottom: 16px;">Usuários Ativos</div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>E-mail</th>
+                    <th>Nível de Acesso</th>
+                    <th>Criado em</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <tr><td colspan="4" style="text-align:center;">Carregando usuários...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Novo Usuário -->
+          <div class="export-card" style="flex: 1; background: #fff;">
+            <div style="font-weight:700; color:var(--text-primary); margin-bottom: 16px; display:flex; align-items:center; gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+              Adicionar Usuário
+            </div>
+            <form onsubmit="handleCreateUser(event)">
+              <div class="filter-group" style="margin-bottom: 16px;">
+                <label>E-mail do usuário</label>
+                <input type="email" id="newUserEmail" placeholder="novo.usuario@bralog.com.br" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+              </div>
+              <div class="filter-group" style="margin-bottom: 16px;">
+                <label>Senha temporária</label>
+                <input type="password" id="newUserPassword" placeholder="••••••••" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+              </div>
+              <div class="filter-group" style="margin-bottom: 24px;">
+                <label>Nível de acesso</label>
+                <select id="newUserRole" style="width: 100%;">
+                  <option value="user">Usuário Comum</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+              <button type="submit" id="btnCreateUser" class="btn-primary" style="width: 100%; justify-content: center;">Adicionar Usuário</button>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- UPLOAD MODAL -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Importar Planilhas</h2>
+        <button class="modal-close" onclick="document.getElementById('uploadModal').classList.remove('show')">&times;</button>
+      </div>
+      <div class="modal-body" id="uploadBody">
+        <div class="upload-zone" id="zone1" ondrop="handleDrop(event,'pedidos')" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')">
+          <input type="file" accept=".xlsx,.xls,.csv" id="filePedidos" onchange="handleFile(this,'pedidos')" hidden>
+          <div class="upload-zone-icon pedidos">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <h3>Pedidos (Últimos 3 Meses)</h3>
+          <p>Arraste o arquivo ou clique para selecionar</p>
+          <button class="btn-outline" onclick="document.getElementById('filePedidos').click()">Selecionar Arquivo</button>
+          <div class="file-status" id="statusPedidos"></div>
+        </div>
+        <div class="upload-zone" id="zone2" ondrop="handleDrop(event,'estoque')" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')">
+          <input type="file" accept=".xlsx,.xls,.csv" id="fileEstoque" onchange="handleFile(this,'estoque')" hidden>
+          <div class="upload-zone-icon estoque">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <h3>Estoque Atual</h3>
+          <p>Arraste o arquivo ou clique para selecionar</p>
+          <button class="btn-outline" onclick="document.getElementById('fileEstoque').click()">Selecionar Arquivo</button>
+          <div class="file-status" id="statusEstoque"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="document.getElementById('uploadModal').classList.remove('show')">Cancelar</button>
+        <button class="btn-primary" id="btnProcessar" onclick="processData()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Processar Análise
+        </button>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- /appContainer -->
+
+  <script src="supabase.js?v=2"></script>
+  <script src="auth.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+</body>
+</html>

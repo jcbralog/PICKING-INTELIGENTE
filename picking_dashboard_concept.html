@@ -1,0 +1,157 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); color: var(--color-text-primary); }
+  .header { padding: 16px 20px 12px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; }
+  .tabs { display: flex; gap: 2px; padding: 10px 20px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .tab { font-size: 13px; padding: 7px 14px; border-radius: 8px 8px 0 0; cursor: pointer; color: var(--color-text-secondary); border: 0.5px solid transparent; border-bottom: none; transition: all .15s; }
+  .tab.active { color: var(--color-text-primary); background: var(--color-background-primary); border-color: var(--color-border-tertiary); font-weight: 500; }
+  .tab:hover:not(.active) { background: var(--color-background-secondary); }
+  .body { padding: 16px 20px; }
+  .section-title { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .metric { background: var(--color-background-secondary); border-radius: 8px; padding: 10px 12px; }
+  .metric-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .metric-value { font-size: 20px; font-weight: 500; }
+  .metric-value.red { color: #dc2626; }
+  .metric-value.amber { color: #d97706; }
+  .metric-value.green { color: #16a34a; }
+  .table-wrap { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+  .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; padding: 8px 14px; background: var(--color-background-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 11px; font-weight: 500; color: var(--color-text-secondary); }
+  .table-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; padding: 9px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 12px; align-items: center; }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--color-background-secondary); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 5px; }
+  .badge.urgente { background: #fef2f2; color: #991b1b; }
+  .badge.media { background: #fffbeb; color: #92400e; }
+  .badge.baixa { background: #f0fdf4; color: #166534; }
+  .bar-wrap { width: 80px; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .charts-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .chart-box { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; padding: 14px; }
+  .chart-title { font-size: 12px; font-weight: 500; margin-bottom: 12px; }
+  .mini-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .mini-bar-label { font-size: 11px; color: var(--color-text-secondary); width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-bar-track { flex: 1; height: 10px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+  .mini-bar-val { font-size: 11px; color: var(--color-text-secondary); width: 28px; text-align: right; }
+  .export-box { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; padding: 14px; }
+  .export-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--color-text-secondary); }
+  .field select, .field input { font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); min-width: 110px; }
+  .col-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .col-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-text-secondary); }
+  .col-item input { width: 13px; height: 13px; }
+  .btn-export { font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 7px; background: #2563eb; color: #fff; border: none; cursor: pointer; }
+  .legend { display: flex; gap: 12px; margin-bottom: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-text-secondary); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .ann-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .ann-icon { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+</style>
+
+<div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; overflow: hidden; font-family: var(--font-sans);">
+
+  <div class="header">
+    <div class="logo"><span class="logo-dot"></span> Picking Intelligence — Análise 3 Meses</div>
+    <span style="font-size:11px;color:var(--color-text-tertiary);">Fev — Abr 2026</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">Painel de Prioridades</div>
+    <div class="tab">Gráficos & Tendências</div>
+    <div class="tab">Apontamentos</div>
+    <div class="tab" style="color:#2563eb;font-weight:500;">Exportar Planilha</div>
+  </div>
+
+  <div class="body">
+
+    <!-- ABA 1: PAINEL DE PRIORIDADES -->
+    <div class="section-title">Resumo do período</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Produtos monitorados</div><div class="metric-value">148</div></div>
+      <div class="metric"><div class="metric-label">Status urgente</div><div class="metric-value red">23</div></div>
+      <div class="metric"><div class="metric-label">Status médio</div><div class="metric-value amber">41</div></div>
+      <div class="metric"><div class="metric-label">Status baixo</div><div class="metric-value green">84</div></div>
+    </div>
+
+    <div class="section-title">Top produtos — prioridade de abastecimento</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div>Urgente — reposição imediata</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Média — repor em 3 dias</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Baixa — estoque suficiente</div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><span>Produto / SKU</span><span>Saídas 90d</span><span>Média/dia</span><span>Giro</span><span>Status</span></div>
+      <div class="table-row"><span>Detergente Liq. 500ml</span><span>1.840</span><span>20,4</span><div class="bar-wrap"><div class="bar-fill" style="width:95%;background:#dc2626"></div></div><span class="badge urgente">● Urgente</span></div>
+      <div class="table-row"><span>Papel Toalha 2F Duplo</span><span>1.610</span><span>17,9</span><div class="bar-wrap"><div class="bar-fill" style="width:85%;background:#dc2626"></div></div><span class="badge urgente">● Urgente</span></div>
+      <div class="table-row"><span>Água Sanitária 1L</span><span>1.290</span><span>14,3</span><div class="bar-wrap"><div class="bar-fill" style="width:68%;background:#d97706"></div></div><span class="badge media">● Média</span></div>
+      <div class="table-row"><span>Sabonete Barra 90g cx12</span><span>980</span><span>10,9</span><div class="bar-wrap"><div class="bar-fill" style="width:52%;background:#d97706"></div></div><span class="badge media">● Média</span></div>
+      <div class="table-row"><span>Esponja de Limpeza cx10</span><span>420</span><span>4,7</span><div class="bar-wrap"><div class="bar-fill" style="width:22%;background:#16a34a"></div></div><span class="badge baixa">● Baixa</span></div>
+    </div>
+
+    <!-- ABA 2: GRÁFICOS (inline preview) -->
+    <div class="charts-grid">
+      <div class="chart-box">
+        <div class="chart-title">Saídas por produto — top 5</div>
+        <div class="mini-bar"><span class="mini-bar-label">Deterg. Liq.</span><div class="mini-bar-track"><div style="width:95%;height:100%;background:#2563eb;border-radius:3px"></div></div><span class="mini-bar-val">1840</span></div>
+        <div class="mini-bar"><span class="mini-bar-label">Papel Toalha</span><div class="mini-bar-track"><div style="width:83%;height:100%;background:#2563eb;border-radius:3px"></div></div><span class="mini-bar-val">1610</span></div>
+        <div class="mini-bar"><span class="mini-bar-label">Água Sanit.</span><div class="mini-bar-track"><div style="width:66%;height:100%;background:#60a5fa;border-radius:3px"></div></div><span class="mini-bar-val">1290</span></div>
+        <div class="mini-bar"><span class="mini-bar-label">Sabonete</span><div class="mini-bar-track"><div style="width:50%;height:100%;background:#93c5fd;border-radius:3px"></div></div><span class="mini-bar-val">980</span></div>
+        <div class="mini-bar"><span class="mini-bar-label">Esponja cx</span><div class="mini-bar-track"><div style="width:22%;height:100%;background:#bfdbfe;border-radius:3px"></div></div><span class="mini-bar-val">420</span></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Distribuição por status</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="38" fill="none" stroke="#f0fdf4" stroke-width="18"/>
+            <circle cx="45" cy="45" r="38" fill="none" stroke="#fef2f2" stroke-width="18" stroke-dasharray="45 194" stroke-dashoffset="0"/>
+            <circle cx="45" cy="45" r="38" fill="none" stroke="#fffbeb" stroke-width="18" stroke-dasharray="53 186" stroke-dashoffset="-45"/>
+            <circle cx="45" cy="45" r="38" fill="none" stroke="#dcfce7" stroke-width="18" stroke-dasharray="110 129" stroke-dashoffset="-98"/>
+            <text x="45" y="49" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)">148</text>
+          </svg>
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;"><div style="width:10px;height:10px;border-radius:2px;background:#fef2f2;border:1px solid #dc2626"></div><span>Urgente 23</span></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;"><div style="width:10px;height:10px;border-radius:2px;background:#fffbeb;border:1px solid #d97706"></div><span>Média 41</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><div style="width:10px;height:10px;border-radius:2px;background:#f0fdf4;border:1px solid #16a34a"></div><span>Baixa 84</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 3: APONTAMENTOS (inline preview) -->
+    <div class="section-title">Apontamentos automáticos</div>
+    <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius:10px; padding:12px; margin-bottom:16px;">
+      <div class="ann-row"><div class="ann-icon" style="background:#fef2f2;color:#dc2626;">!</div><span><strong>Detergente Liq. 500ml</strong> aumentou 38% nas saídas vs. mês anterior — verificar ruptura de estoque.</span></div>
+      <div class="ann-row"><div class="ann-icon" style="background:#fef2f2;color:#dc2626;">!</div><span><strong>Papel Toalha 2F</strong> está com tendência de alta contínua nos 3 meses — avaliar ponto de pedido.</span></div>
+      <div class="ann-row"><div class="ann-icon" style="background:#fffbeb;color:#d97706;">~</div><span><strong>Água Sanitária 1L</strong> giro estável, porém próximo ao limite de reposição recomendado.</span></div>
+      <div class="ann-row"><div class="ann-icon" style="background:#f0fdf4;color:#16a34a;">✓</div><span><strong>Esponja de Limpeza</strong> com giro baixo — possível excesso de estoque no picking.</span></div>
+    </div>
+
+    <!-- ABA 4: EXPORTAR -->
+    <div class="section-title">Exportar planilha corporativa</div>
+    <div class="export-box">
+      <div class="export-row">
+        <div class="field"><label>Período</label><select><option>Últimos 3 meses</option><option>Último mês</option><option>Personalizado</option></select></div>
+        <div class="field"><label>Status</label><select><option>Todos</option><option>Urgente</option><option>Média</option><option>Baixa</option></select></div>
+        <div class="field"><label>Formato</label><select><option>Excel (.xlsx)</option><option>CSV</option></select></div>
+        <div class="field"><label>Centro de Dist.</label><input type="text" placeholder="Ex: CD-SP01" style="width:100px"/></div>
+      </div>
+      <div class="section-title" style="margin-bottom:6px;">Colunas a incluir</div>
+      <div class="col-grid">
+        <label class="col-item"><input type="checkbox" checked> SKU</label>
+        <label class="col-item"><input type="checkbox" checked> Descrição</label>
+        <label class="col-item"><input type="checkbox" checked> Saídas 90d</label>
+        <label class="col-item"><input type="checkbox" checked> Média/dia</label>
+        <label class="col-item"><input type="checkbox" checked> Status</label>
+        <label class="col-item"><input type="checkbox"> Estoque atual</label>
+        <label class="col-item"><input type="checkbox"> Ponto de pedido</label>
+        <label class="col-item"><input type="checkbox"> Responsável</label>
+      </div>
+      <button class="btn-export">Exportar planilha</button>
+    </div>
+
+  </div>
+</div>
