@@ -139,8 +139,16 @@ function processData() {
       0;
     const qty = parseNum(qtyRaw);
 
-    if (!estoqueMap[sku]) estoqueMap[sku] = { qty: 0 };
+    const endereco = findCol(row, [
+      'Endereço', 'Endereco', 'Endereço ', 'ENDEREÇO', 'ENDERECO',
+      'Local', 'Localizacao', 'Localização',
+      'Box', 'Posicao', 'Posição', 'Posicao armazenagem',
+      'Rua', 'Rua/Box', 'End.', 'Endereco armazenagem'
+    ]) ?? '';
+
+    if (!estoqueMap[sku]) estoqueMap[sku] = { qty: 0, enderecos: new Set() };
     estoqueMap[sku].qty += qty;
+    if (endereco) estoqueMap[sku].enderecos.add(endereco.trim());
   });
 
   // ===== STEP 2: BUILD PEDIDOS MAP =====
@@ -217,7 +225,7 @@ function processData() {
       }
     }
 
-    analysisData.push({ sku, desc: pedido.desc, saidas90d, mediaDia, estoqueAtual, diasCobertura, status, giroPercent, months: pedido.months, trend, variacao, monthKeys });
+    analysisData.push({ sku, desc: pedido.desc, saidas90d, mediaDia, estoqueAtual, enderecos: estoqueEntry.enderecos ? [...estoqueEntry.enderecos].filter(Boolean).sort() : [], diasCobertura, status, giroPercent, months: pedido.months, trend, variacao, monthKeys });
   });
 
   // Sort: Urgente → Médio → Baixo, depois por saídas decrescentes dentro de cada grupo
@@ -318,20 +326,47 @@ let currentSort = { col: 'saidas90d', asc: false };
 let currentFilterStatus = 'todos';
 
 function renderTable(data) {
+  window._enderecosData = window._enderecosData || {};
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = data.map(d => {
     const statusClass = d.status === 'Urgente' ? 'urgente' : d.status === 'Médio' ? 'medio' : 'baixo';
     const barColor = d.status === 'Urgente' ? '#ef4444' : d.status === 'Médio' ? '#f59e0b' : '#10b981';
+    // Suporte a dados novos (enderecos array) e históricos (endereco string)
+    const enderecos = Array.isArray(d.enderecos) ? d.enderecos.filter(Boolean)
+                    : (d.endereco && d.endereco !== '—' ? [d.endereco] : []);
+    let endCell;
+    if (enderecos.length === 0) {
+      endCell = '<span style="color:#9ca3af;">—</span>';
+    } else if (enderecos.length === 1) {
+      endCell = '<code style="background:#f0fdf4;color:#065f46;padding:2px 7px;border-radius:5px;font-size:11.5px;font-weight:600;">' + escHTML(enderecos[0]) + '</code>';
+    } else {
+      window._enderecosData[d.sku] = { desc: d.desc, enderecos };
+      endCell = '<button onclick="openEnderecosModal(\'' + d.sku.replace(/'/g, "\\''") + '\')" style="background:#ecfdf5;border:1.5px solid #6ee7b7;color:#065f46;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">&#128205; ' + enderecos.length + ' endereços</button>';
+    }
     return '<tr>' +
       '<td><strong>' + escHTML(d.desc) + '</strong><br><span style="font-size:11px;color:#9ca3af;">' + escHTML(d.sku) + '</span></td>' +
       '<td>' + d.saidas90d.toLocaleString('pt-BR') + '</td>' +
       '<td>' + d.mediaDia.toLocaleString('pt-BR') + '</td>' +
       '<td>' + d.estoqueAtual.toLocaleString('pt-BR') + '</td>' +
+      '<td>' + endCell + '</td>' +
       '<td>' + (d.diasCobertura >= 999 ? '—' : d.diasCobertura + ' dias') + '</td>' +
       '<td><div class="bar-wrap"><div class="bar-fill" style="width:' + d.giroPercent + '%;background:' + barColor + '"></div></div></td>' +
       '<td><span class="badge ' + statusClass + '">● ' + d.status + '</span></td>' +
       '</tr>';
   }).join('');
+}
+
+function openEnderecosModal(sku) {
+  const entry = window._enderecosData && window._enderecosData[sku];
+  if (!entry) return;
+  document.getElementById('enderecosModalTitle').textContent = entry.desc + ' — SKU: ' + sku;
+  document.getElementById('enderecosModalList').innerHTML = entry.enderecos.map((e, i) =>
+    '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:' + (i%2===0?'#f0fdf4':'#fff') + ';border-radius:8px;margin-bottom:6px;border:1px solid #d1fae5;">' +
+    '<div style="width:24px;height:24px;background:#059669;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">' + (i+1) + '</div>' +
+    '<code style="font-weight:700;color:#065f46;font-size:14px;">' + escHTML(e) + '</code>' +
+    '</div>'
+  ).join('');
+  document.getElementById('enderecosModal').style.display = 'flex';
 }
 
 function escHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -355,6 +390,7 @@ function openColFilter(colKey, headerEl) {
     if (colKey === 'saidas90d') return String(d.saidas90d);
     if (colKey === 'mediaDia') return String(d.mediaDia);
     if (colKey === 'estoqueAtual') return String(d.estoqueAtual);
+    if (colKey === 'endereco') return d.endereco;
     if (colKey === 'diasCobertura') return d.diasCobertura >= 9999 ? '—' : String(d.diasCobertura);
     return '';
   }))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -426,6 +462,7 @@ window.applyColFilter = function(colKey) {
     if (colKey === 'saidas90d') return String(d.saidas90d);
     if (colKey === 'mediaDia') return String(d.mediaDia);
     if (colKey === 'estoqueAtual') return String(d.estoqueAtual);
+    if (colKey === 'endereco') return d.endereco;
     if (colKey === 'diasCobertura') return d.diasCobertura >= 9999 ? '—' : String(d.diasCobertura);
     return '';
   }))];
@@ -460,6 +497,7 @@ function applyTableFilters() {
       else if (col === 'saidas90d') val = String(d.saidas90d);
       else if (col === 'mediaDia') val = String(d.mediaDia);
       else if (col === 'estoqueAtual') val = String(d.estoqueAtual);
+      else if (col === 'endereco') { const arr = Array.isArray(d.enderecos) ? d.enderecos : (d.endereco ? [d.endereco] : []); val = arr.filter(Boolean).join(' / ') || '—'; }
       else if (col === 'diasCobertura') val = d.diasCobertura >= 9999 ? '—' : String(d.diasCobertura);
       if (!allowed.has(val)) return false;
     }
@@ -694,9 +732,9 @@ async function exportData() {
 
 
 function exportCSV(data) {
-  const header = ['SKU','Produto','Saídas 90d','Média/Dia','Estoque Atual','Dias Cobertura','Status','Ponto de Pedido'];
+  const header = ['SKU','Produto','Saídas 90d','Média/Dia','Estoque Atual','Endereço','Dias Cobertura','Status','Ponto de Pedido'];
   const rows = data.map(d => [
-    d.sku, d.desc, d.saidas90d, d.mediaDia, d.estoqueAtual,
+    d.sku, d.desc, d.saidas90d, d.mediaDia, d.estoqueAtual, d.endereco,
     d.diasCobertura >= 9999 ? 'N/A' : d.diasCobertura,
     d.status, Math.round(d.mediaDia * 14)
   ]);
@@ -745,8 +783,8 @@ async function exportXLSXPremium(data) {
     views: [{ state: 'frozen', ySplit: 7 }]
   });
   ws1.columns = [
-    { width: 20 }, { width: 46 }, { width: 14 }, { width: 13 },
-    { width: 16 }, { width: 17 }, { width: 17 }, { width: 13 }
+    { width: 16 }, { width: 42 }, { width: 14 }, { width: 12 },
+    { width: 14 }, { width: 18 }, { width: 15 }, { width: 15 }, { width: 12 }
   ];
 
   // Linha 1 — Título BRALOG
@@ -788,7 +826,7 @@ async function exportXLSXPremium(data) {
   ws1.getRow(6).height = 4;
 
   // Linha 7 — cabeçalhos da tabela
-  const colHeaders = ['SKU', 'PRODUTO', 'SAÍDAS 90d', 'MÉDIA/DIA', 'ESTOQUE ATUAL', 'DIAS COBERTURA', 'PONTO PEDIDO', 'STATUS'];
+  const colHeaders = ['SKU', 'PRODUTO', 'SAÍDAS 90d', 'MÉDIA/DIA', 'ESTOQUE ATUAL', 'ENDEREÇO', 'DIAS COBERTURA', 'PONTO PEDIDO', 'STATUS'];
   const hRow = ws1.getRow(7);
   hRow.height = 26;
   colHeaders.forEach((h, i) => {
@@ -810,7 +848,7 @@ async function exportXLSXPremium(data) {
 
     const vals = [
       d.sku, d.desc, d.saidas90d, d.mediaDia,
-      d.estoqueAtual,
+      d.estoqueAtual, d.endereco,
       d.diasCobertura >= 9999 ? 'N/A' : d.diasCobertura,
       Math.round(d.mediaDia * 14),
       d.status
@@ -826,7 +864,7 @@ async function exportXLSXPremium(data) {
     });
 
     // Célula STATUS colorida
-    const sc = dRow.getCell(8);
+    const sc = dRow.getCell(9);
     if (d.status === 'Urgente') {
       applyFill(sc, 'EF4444'); applyFont(sc, 'FFFFFF', true, 10); applyAlign(sc, 'center');
     } else if (d.status === 'Médio') {
@@ -835,7 +873,7 @@ async function exportXLSXPremium(data) {
       applyFill(sc, '10B981'); applyFont(sc, 'FFFFFF', true, 10); applyAlign(sc, 'center');
     }
     if (d.diasCobertura === 0) {
-      applyFont(dRow.getCell(6), 'EF4444', true, 10);
+      applyFont(dRow.getCell(7), 'EF4444', true, 10);
     }
   });
 

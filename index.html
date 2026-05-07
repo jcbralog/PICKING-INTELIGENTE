@@ -11,13 +11,13 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="./styles.css">
 
 </head>
 <body>
 
   <!-- TELA DE LOGIN -->
-  <div id="loginScreen" class="login-screen" style="display: none;">
+  <div id="loginScreen" class="login-screen" style="display: flex;">
     <div class="login-card">
       <div class="login-logo">
         <!-- Logo BRALOG centralizada com fundo contrastante -->
@@ -202,6 +202,10 @@
                 <th class="sortable" data-col="estoqueAtual">
                   <div class="th-inner" onclick="sortTable('estoqueAtual')">Estoque Atual</div>
                   <button class="th-filter-btn" onclick="openColFilter('estoqueAtual', this)" title="Filtrar">▼</button>
+                </th>
+                <th class="sortable" data-col="endereco">
+                  <div class="th-inner" onclick="sortTable('endereco')">Endereço</div>
+                  <button class="th-filter-btn" onclick="openColFilter('endereco', this)" title="Filtrar">▼</button>
                 </th>
                 <th class="sortable" data-col="diasCobertura">
                   <div class="th-inner" onclick="sortTable('diasCobertura')">Dias Cobertura</div>
@@ -421,10 +425,24 @@
     </div>
   </div>
 
+    <!-- POPUP: MÚLTIPLOS ENDEREÇOS POR SKU -->
+    <div id="enderecosModal" onclick="if(event.target===this)this.style.display='none'"
+      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:3000;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,0.35);position:relative;">
+        <button onclick="document.getElementById('enderecosModal').style.display='none'"
+          style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:#6b7280;padding:4px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div style="font-size:11px;color:#059669;text-transform:uppercase;font-weight:700;letter-spacing:0.08em;margin-bottom:6px;">📍 Endereços do SKU</div>
+        <div id="enderecosModalTitle" style="font-size:15px;font-weight:700;color:#111827;margin-bottom:22px;padding-right:28px;line-height:1.4;"></div>
+        <div id="enderecosModalList"></div>
+      </div>
+    </div>
+
   </div> <!-- /appContainer -->
 
-  <script src="/supabase.js?v=2"></script>
-  <script src="/auth.js?v=2"></script>
-  <script src="/app.js?v=2"></script>
+  <script src="./supabase.js?v=3"></script>
+  <script src="./auth.js?v=3"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>
