@@ -344,7 +344,7 @@ function renderTable(data) {
       endCell = '<button onclick="openEnderecosModal(\'' + d.sku.replace(/'/g, "\\''") + '\')" style="background:#ecfdf5;border:1.5px solid #6ee7b7;color:#065f46;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">&#128205; ' + enderecos.length + ' endereços</button>';
     }
     return '<tr>' +
-      '<td><strong>' + escHTML(d.desc) + '</strong><br><span style="font-size:11px;color:#9ca3af;">' + escHTML(d.sku) + '</span></td>' +
+      '<td><strong>' + escHTML(d.desc) + '</strong><br><span style="font-size:11px;color:#9ca3af;cursor:pointer;padding:2px 4px;border-radius:4px;margin-left:-4px;" onmouseover="this.style.background=\'#f3f4f6\'" onmouseout="this.style.background=\'transparent\'" onclick="copySku(\'' + String(d.sku).replace(/'/g, "\\'") + '\', this)" title="Clique para copiar o SKU">' + escHTML(d.sku) + '</span></td>' +
       '<td>' + d.saidas90d.toLocaleString('pt-BR') + '</td>' +
       '<td>' + d.mediaDia.toLocaleString('pt-BR') + '</td>' +
       '<td>' + d.estoqueAtual.toLocaleString('pt-BR') + '</td>' +
@@ -370,6 +370,22 @@ function openEnderecosModal(sku) {
 }
 
 function escHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+window.copySku = function(text, el) {
+  navigator.clipboard.writeText(text).then(() => {
+    const origText = el.innerText;
+    el.innerText = 'Copiado!';
+    el.style.color = '#059669';
+    el.style.background = '#d1fae5';
+    setTimeout(() => {
+      el.innerText = origText;
+      el.style.color = '#9ca3af';
+      el.style.background = 'transparent';
+    }, 1200);
+  }).catch(err => {
+    console.error('Erro ao copiar SKU:', err);
+  });
+};
 
 // ===== EXCEL-STYLE COLUMN FILTERS =====
 let colFilters = {}; // { colKey: Set of allowed values } — empty Set means "all"
@@ -797,7 +813,7 @@ async function exportXLSXPremium(data) {
   // Linha 2 — Subtítulo
   ws1.mergeCells('A2:H2');
   const t2 = ws1.getCell('A2');
-  t2.value = 'Relatório de Picking Intelligence — Análise de Estoque';
+  t2.value = 'Relatório de GESTÃO DE ESTOQUE — Análise de Estoque';
   applyFill(t2, DARK); applyFont(t2, 'D1FAE5', false, 11); applyAlign(t2);
   ws1.getRow(2).height = 22;
 
@@ -899,7 +915,7 @@ async function exportXLSXPremium(data) {
   }
 
   ex2Row(['BRALOG LOGÍSTICA — RESUMO EXECUTIVO','','',''], DARK, '10B981', true, 16, 36, 'D');
-  ex2Row(['Relatório: Análise de Picking Intelligence','','',''], DARK, 'D1FAE5', false, 11, 22, 'D');
+  ex2Row(['Relatório: Análise de GESTÃO DE ESTOQUE','','',''], DARK, 'D1FAE5', false, 11, 22, 'D');
   ex2Row([`Data: ${dateStr}`,'','',''], DARK, '6EE7B7', false, 10, 18, 'D');
   ex2Row(['','','',''], DARK, 'FFFFFF', false, 10, 6, 'D');
   ex2Row(['','','',''], VERDE, 'FFFFFF', false, 10, 4, 'D');
@@ -934,7 +950,7 @@ async function exportXLSXPremium(data) {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'BRALOG_Picking_Intelligence_' + now.toISOString().slice(0, 10) + '.xlsx';
+  a.download = 'BRALOG_Gestao_de_Estoque_' + now.toISOString().slice(0, 10) + '.xlsx';
   a.click();
   URL.revokeObjectURL(a.href);
 }
