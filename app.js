@@ -979,6 +979,7 @@ async function saveCurrentAnalysis(totalProdutos) {
   }
 
   const clientName = document.getElementById('clientSelector')?.value || 'Desconhecido';
+  const userId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
   // Deep copy para não passar referência mutável
   const dataToSave = JSON.parse(JSON.stringify(analysisData));
 
@@ -993,7 +994,7 @@ async function saveCurrentAnalysis(totalProdutos) {
   console.log('[saveCurrentAnalysis] Iniciando save →', clientName, '— produtos:', dataToSave.length);
 
   try {
-    const saved = await saveAnalysisSnapshot(clientName, dataToSave);
+    const saved = await saveAnalysisSnapshot(clientName, dataToSave, userId);
 
     if (saved) {
       console.log('[saveCurrentAnalysis] ✅ Salvo! ID:', saved.id);
@@ -1040,13 +1041,14 @@ window.manualSave = manualSave;
 
 async function changeClient() {
   const clientName = document.getElementById('clientSelector').value;
+  const userId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
   document.getElementById('histClientName').innerText = clientName;
   
   // Tentar carregar última análise
   document.getElementById('dataStatus').innerHTML = '<span class="status-dot offline"></span><span class="status-text">Carregando dados...</span>';
   
   try {
-    const latest = await fetchLatestSnapshot(clientName);
+    const latest = await fetchLatestSnapshot(clientName, userId);
     if (latest && latest.analysis_data) {
       let data = latest.analysis_data;
       if (typeof data === 'string') {
@@ -1082,13 +1084,14 @@ async function changeClient() {
 
 async function loadHistoryList() {
   const clientName = document.getElementById('clientSelector').value;
+  const userId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
   document.getElementById('histClientName').innerText = clientName;
   const tbody = document.getElementById('historyTableBody');
   
   tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
   
   try {
-    const history = await fetchHistory(clientName);
+    const history = await fetchHistory(clientName, userId);
     
     if (!history || history.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-tertiary);">Nenhum histórico encontrado para este cliente.</td></tr>';

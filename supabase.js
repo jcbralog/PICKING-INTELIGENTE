@@ -70,23 +70,26 @@ document.addEventListener('DOMContentLoaded', function() {
 // API PÚBLICA — usa lib se disponível, fetch nativo como fallback
 // ═══════════════════════════════════════════════════════════════
 
-// Retorna o histórico de um cliente
-async function fetchHistory(clientName) {
-  console.log('[Supabase] fetchHistory →', clientName);
+// Retorna o histórico de um cliente (filtrado por usuário)
+async function fetchHistory(clientName, userId) {
+  console.log('[Supabase] fetchHistory →', clientName, '| user:', userId);
   try {
     if (supabaseClient) {
-      const { data, error } = await supabaseClient
+      let query = supabaseClient
         .from('analysis_snapshots')
         .select('id, created_at, client_name')
         .eq('client_name', clientName)
         .order('created_at', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query;
       if (!error) return data || [];
       console.warn('[Supabase] fetchHistory lib erro, usando fetch:', error.message);
     }
     // Fallback fetch
     const enc = encodeURIComponent(clientName);
-    const data = await sbRequest('analysis_snapshots', 'GET', null,
-      'select=id,created_at,client_name&client_name=eq.' + enc + '&order=created_at.desc');
+    let params = 'select=id,created_at,client_name&client_name=eq.' + enc + '&order=created_at.desc';
+    if (userId) params += '&user_id=eq.' + encodeURIComponent(userId);
+    const data = await sbRequest('analysis_snapshots', 'GET', null, params);
     return Array.isArray(data) ? data : [];
   } catch(e) {
     console.error('[Supabase] fetchHistory erro:', e.message);
@@ -94,10 +97,10 @@ async function fetchHistory(clientName) {
   }
 }
 
-// Salva um novo snapshot
-async function saveAnalysisSnapshot(clientName, analysisData) {
-  console.log('[Supabase] saveAnalysisSnapshot →', clientName, '| produtos:', analysisData.length);
-  const payload = { client_name: clientName, analysis_data: analysisData };
+// Salva um novo snapshot (com user_id para isolamento)
+async function saveAnalysisSnapshot(clientName, analysisData, userId) {
+  console.log('[Supabase] saveAnalysisSnapshot →', clientName, '| produtos:', analysisData.length, '| user:', userId);
+  const payload = { client_name: clientName, analysis_data: analysisData, user_id: userId || null };
 
   try {
     if (supabaseClient) {
@@ -147,26 +150,27 @@ async function loadSnapshotData(id) {
   }
 }
 
-// Pega a análise mais recente de um cliente
-async function fetchLatestSnapshot(clientName) {
-  console.log('[Supabase] fetchLatestSnapshot →', clientName);
+// Pega a análise mais recente de um cliente (filtrada por usuário)
+async function fetchLatestSnapshot(clientName, userId) {
+  console.log('[Supabase] fetchLatestSnapshot →', clientName, '| user:', userId);
   try {
     if (supabaseClient) {
-      const { data, error } = await supabaseClient
+      let query = supabaseClient
         .from('analysis_snapshots')
         .select('analysis_data, created_at')
         .eq('client_name', clientName)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query.maybeSingle();
       if (!error) return data;
-      if (error.code === 'PGRST116') return null; // sem registros
       console.warn('[Supabase] fetchLatestSnapshot lib erro:', error.message);
     }
     // Fallback fetch
     const enc = encodeURIComponent(clientName);
-    const data = await sbRequest('analysis_snapshots', 'GET', null,
-      'select=analysis_data,created_at&client_name=eq.' + enc + '&order=created_at.desc&limit=1');
+    let params = 'select=analysis_data,created_at&client_name=eq.' + enc + '&order=created_at.desc&limit=1';
+    if (userId) params += '&user_id=eq.' + encodeURIComponent(userId);
+    const data = await sbRequest('analysis_snapshots', 'GET', null, params);
     const rows = Array.isArray(data) ? data : [];
     return rows.length > 0 ? rows[0] : null;
   } catch(e) {

@@ -50,7 +50,7 @@ async function handleLogin(event) {
 
   // Hardcoded Master Fallback (garante acesso caso o banco falhe)
   if (email === 'jc.bralog@gmail.com' && password === '@Jc231105') {
-    currentUser = { id: 'master', email: email, role: 'admin' };
+    currentUser = { id: 'bcfd2367-d710-4b00-ada3-ca8e6d5cafe7', email: email, role: 'admin' };
     localStorage.setItem('bralog_user', JSON.stringify(currentUser));
     showApp();
     return;
