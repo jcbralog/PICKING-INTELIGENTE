@@ -122,6 +122,15 @@ async function saveAnalysisSnapshot(clientName, analysisData, userId) {
     return saved;
   } catch(e) {
     console.error('[Supabase] saveAnalysisSnapshot ERRO:', e.message);
+    // Enriquece o erro com informações úteis para depuração
+    const msg = e.message || '';
+    if (msg.includes('row-level security') || msg.includes('violates row')) {
+      e.message = 'RLS bloqueia INSERT. Execute as políticas SQL no schema.sql. ' + e.message;
+    } else if (msg.includes('does not exist') || msg.includes('42P01')) {
+      e.message = 'Tabela analysis_snapshots não existe no Supabase. Execute o schema.sql. ' + e.message;
+    } else if (msg.includes('401') || msg.includes('Unauthorized')) {
+      e.message = 'Chave anônima sem permissão. Verifique as RLS policies no Supabase. ' + e.message;
+    }
     throw e;
   }
 }

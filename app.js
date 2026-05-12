@@ -417,7 +417,10 @@ function openColFilter(colKey, headerEl) {
   const rect = headerEl.getBoundingClientRect();
   const drop = document.createElement('div');
   drop.id = 'excelFilterDropdown';
-  drop.style.cssText = `position:fixed;top:${rect.bottom + 2}px;left:${rect.left}px;min-width:240px;max-width:320px;
+  const vw = window.innerWidth;
+  const dropW = Math.min(320, vw - 16);
+  const dropL = Math.min(rect.left, vw - dropW - 8);
+  drop.style.cssText = `position:fixed;top:${rect.bottom + 2}px;left:${Math.max(8, dropL)}px;min-width:240px;max-width:${dropW}px;
     background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.15);
     z-index:1000;font-family:Inter,sans-serif;font-size:12.5px;overflow:hidden;`;
 
@@ -1018,9 +1021,22 @@ async function saveCurrentAnalysis(totalProdutos) {
     }
   } catch(e) {
     console.error('[saveCurrentAnalysis] Exceção:', e);
+    const msg = e.message || String(e);
+    let userMsg = msg;
+    if (msg.includes('row-level security') || msg.includes('violates')) {
+      userMsg = 'Banco bloqueado por segurança (RLS). Execute as políticas SQL no schema.sql';
+    } else if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('42P01')) {
+      userMsg = 'Tabela analysis_snapshots não existe. Execute o schema.sql no Supabase';
+    } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('load')) {
+      userMsg = 'Erro de rede. Verifique sua conexão com o Supabase';
+    } else if (msg.includes('401') || msg.includes('403') || msg.includes('Unauthorized')) {
+      userMsg = 'Credenciais do banco inválidas ou sem permissão';
+    }
     statusEl.innerHTML =
-      '<span class="status-dot offline"></span>' +
-      '<span class="status-text" style="color:#ef4444;">❌ Erro ao salvar: ' + (e.message || e) + '</span>';
+      '<span class="status-dot offline" style="background:#ef4444;"></span>' +
+      '<span class="status-text" style="color:#ef4444;font-size:11px;">❌ ' + userMsg + '</span>';
+    // Também mostra o erro técnico no console e num alert se for admin
+    console.error('[saveCurrentAnalysis] Detalhe:', msg);
   }
 }
 
