@@ -1057,14 +1057,13 @@ window.manualSave = manualSave;
 
 async function changeClient() {
   const clientName = document.getElementById('clientSelector').value;
-  const userId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
   document.getElementById('histClientName').innerText = clientName;
   
   // Tentar carregar última análise
   document.getElementById('dataStatus').innerHTML = '<span class="status-dot offline"></span><span class="status-text">Carregando dados...</span>';
   
   try {
-    const latest = await fetchLatestSnapshot(clientName, userId);
+    const latest = await fetchLatestSnapshot(clientName);
     if (latest && latest.analysis_data) {
       let data = latest.analysis_data;
       if (typeof data === 'string') {
@@ -1100,14 +1099,13 @@ async function changeClient() {
 
 async function loadHistoryList() {
   const clientName = document.getElementById('clientSelector').value;
-  const userId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
   document.getElementById('histClientName').innerText = clientName;
   const tbody = document.getElementById('historyTableBody');
   
   tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
   
   try {
-    const history = await fetchHistory(clientName, userId);
+    const history = await fetchHistory(clientName);
     
     if (!history || history.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-tertiary);">Nenhum histórico encontrado para este cliente.</td></tr>';

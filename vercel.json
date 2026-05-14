@@ -1,4 +1,5 @@
 {
+  "name": "gestao-estoque-bralog",
   "framework": null,
   "outputDirectory": ".",
   "rewrites": [

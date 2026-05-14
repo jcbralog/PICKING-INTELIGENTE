@@ -70,25 +70,22 @@ document.addEventListener('DOMContentLoaded', function() {
 // API PÚBLICA — usa lib se disponível, fetch nativo como fallback
 // ═══════════════════════════════════════════════════════════════
 
-// Retorna o histórico de um cliente (filtrado por usuário)
-async function fetchHistory(clientName, userId) {
-  console.log('[Supabase] fetchHistory →', clientName, '| user:', userId);
+// Retorna o histórico de um cliente (compartilhado entre todos os usuários)
+async function fetchHistory(clientName) {
+  console.log('[Supabase] fetchHistory →', clientName);
   try {
     if (supabaseClient) {
-      let query = supabaseClient
+      const { data, error } = await supabaseClient
         .from('analysis_snapshots')
         .select('id, created_at, client_name')
         .eq('client_name', clientName)
         .order('created_at', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
-      const { data, error } = await query;
       if (!error) return data || [];
       console.warn('[Supabase] fetchHistory lib erro, usando fetch:', error.message);
     }
     // Fallback fetch
     const enc = encodeURIComponent(clientName);
-    let params = 'select=id,created_at,client_name&client_name=eq.' + enc + '&order=created_at.desc';
-    if (userId) params += '&user_id=eq.' + encodeURIComponent(userId);
+    const params = 'select=id,created_at,client_name&client_name=eq.' + enc + '&order=created_at.desc';
     const data = await sbRequest('analysis_snapshots', 'GET', null, params);
     return Array.isArray(data) ? data : [];
   } catch(e) {
@@ -97,7 +94,7 @@ async function fetchHistory(clientName, userId) {
   }
 }
 
-// Salva um novo snapshot (com user_id para isolamento)
+// Salva um novo snapshot (user_id registrado para auditoria, mas leitura é compartilhada)
 async function saveAnalysisSnapshot(clientName, analysisData, userId) {
   console.log('[Supabase] saveAnalysisSnapshot →', clientName, '| produtos:', analysisData.length, '| user:', userId);
   const payload = { client_name: clientName, analysis_data: analysisData, user_id: userId || null };
@@ -159,26 +156,24 @@ async function loadSnapshotData(id) {
   }
 }
 
-// Pega a análise mais recente de um cliente (filtrada por usuário)
-async function fetchLatestSnapshot(clientName, userId) {
-  console.log('[Supabase] fetchLatestSnapshot →', clientName, '| user:', userId);
+// Pega a análise mais recente de um cliente (compartilhada entre todos os usuários)
+async function fetchLatestSnapshot(clientName) {
+  console.log('[Supabase] fetchLatestSnapshot →', clientName);
   try {
     if (supabaseClient) {
-      let query = supabaseClient
+      const { data, error } = await supabaseClient
         .from('analysis_snapshots')
         .select('analysis_data, created_at')
         .eq('client_name', clientName)
         .order('created_at', { ascending: false })
-        .limit(1);
-      if (userId) query = query.eq('user_id', userId);
-      const { data, error } = await query.maybeSingle();
+        .limit(1)
+        .maybeSingle();
       if (!error) return data;
       console.warn('[Supabase] fetchLatestSnapshot lib erro:', error.message);
     }
     // Fallback fetch
     const enc = encodeURIComponent(clientName);
-    let params = 'select=analysis_data,created_at&client_name=eq.' + enc + '&order=created_at.desc&limit=1';
-    if (userId) params += '&user_id=eq.' + encodeURIComponent(userId);
+    const params = 'select=analysis_data,created_at&client_name=eq.' + enc + '&order=created_at.desc&limit=1';
     const data = await sbRequest('analysis_snapshots', 'GET', null, params);
     const rows = Array.isArray(data) ? data : [];
     return rows.length > 0 ? rows[0] : null;
